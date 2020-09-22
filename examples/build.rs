@@ -54,6 +54,7 @@ fn build_json_codec_service() {
                 .codec_path("crate::common::JsonCodec")
                 .build(),
         )
+        .codec_path("crate::common::JsonCodec")
         .build();
 
     tonic_build::manual::Builder::new().compile(&[greeter_service]);

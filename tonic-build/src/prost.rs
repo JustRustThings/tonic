@@ -49,10 +49,13 @@ pub fn compile_protos(proto: impl AsRef<Path>) -> io::Result<()> {
 const PROST_CODEC_PATH: &str = "tonic::codec::ProstCodec";
 
 impl crate::Service for Service {
-    const CODEC_PATH: &'static str = PROST_CODEC_PATH;
 
     type Method = Method;
     type Comment = String;
+
+    fn codec_path(&self) -> &str {
+        PROST_CODEC_PATH
+    }
 
     fn name(&self) -> &str {
         &self.name
@@ -76,8 +79,11 @@ impl crate::Service for Service {
 }
 
 impl crate::Method for Method {
-    const CODEC_PATH: &'static str = PROST_CODEC_PATH;
     type Comment = String;
+
+    fn codec_path(&self) -> &str {
+        PROST_CODEC_PATH
+    }
 
     fn name(&self) -> &str {
         &self.name

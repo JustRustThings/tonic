@@ -2,7 +2,7 @@ use crate::code_gen::CodeGenBuilder;
 
 use super::Attributes;
 use proc_macro2::TokenStream;
-use prost_build::{Config, Method, Service};
+use prost_build::{Config, Method as ProstMethod, Service as ProstService};
 use quote::ToTokens;
 use std::{
     collections::HashSet,
@@ -33,6 +33,7 @@ pub fn configure() -> Builder {
         include_file: None,
         emit_rerun_if_changed: std::env::var_os("CARGO").is_some(),
         disable_comments: HashSet::default(),
+        codec_path: DEFAULT_PROST_CODEC_PATH.to_string(),
     }
 }
 
@@ -53,14 +54,47 @@ pub fn compile_protos(proto: impl AsRef<Path>) -> io::Result<()> {
     Ok(())
 }
 
-const PROST_CODEC_PATH: &str = "tonic::codec::ProstCodec";
+const DEFAULT_PROST_CODEC_PATH: &str = "tonic::codec::ProstCodec";
 
 /// Non-path Rust types allowed for request/response types.
 const NON_PATH_TYPE_ALLOWLIST: &[&str] = &["()"];
 
+struct Service {
+    name: String,
+    package: String,
+    proto_name: String,
+    comments: Vec<String>,
+    methods: Vec<Method>,
+    codec_path: String,
+}
+
+impl Service {
+    fn new(service: ProstService, codec_path: String) -> Service {
+        Service {
+            name: service.name,
+            package: service.package,
+            proto_name: service.proto_name,
+            comments: service.comments.leading,
+            methods: service
+                .methods
+                .into_iter()
+                .map(|v| Method {
+                    inner: v,
+                    codec_path: codec_path.clone(),
+                })
+                .collect(),
+            codec_path,
+        }
+    }
+}
+
 impl crate::Service for Service {
     type Method = Method;
     type Comment = String;
+
+    fn codec_path(&self) -> &str {
+        &self.codec_path
+    }
 
     fn name(&self) -> &str {
         &self.name
@@ -75,7 +109,7 @@ impl crate::Service for Service {
     }
 
     fn comment(&self) -> &[Self::Comment] {
-        &self.comments.leading[..]
+        &self.comments[..]
     }
 
     fn methods(&self) -> &[Self::Method] {
@@ -83,31 +117,36 @@ impl crate::Service for Service {
     }
 }
 
+struct Method {
+    inner: ProstMethod,
+    codec_path: String,
+}
+
 impl crate::Method for Method {
     type Comment = String;
 
     fn name(&self) -> &str {
-        &self.name
+        &self.inner.name
     }
 
     fn identifier(&self) -> &str {
-        &self.proto_name
+        &self.inner.proto_name
     }
 
     fn codec_path(&self) -> &str {
-        PROST_CODEC_PATH
+        &self.codec_path
     }
 
     fn client_streaming(&self) -> bool {
-        self.client_streaming
+        self.inner.client_streaming
     }
 
     fn server_streaming(&self) -> bool {
-        self.server_streaming
+        self.inner.server_streaming
     }
 
     fn comment(&self) -> &[Self::Comment] {
-        &self.comments.leading[..]
+        &self.inner.comments.leading[..]
     }
 
     fn request_response_name(
@@ -132,8 +171,8 @@ impl crate::Method for Method {
             }
         };
 
-        let request = convert_type(&self.input_proto_type, &self.input_type);
-        let response = convert_type(&self.output_proto_type, &self.output_type);
+        let request = convert_type(&self.inner.input_proto_type, &self.inner.input_type);
+        let response = convert_type(&self.inner.output_proto_type, &self.inner.output_type);
         (request, response)
     }
 }
@@ -159,7 +198,8 @@ impl ServiceGenerator {
 }
 
 impl prost_build::ServiceGenerator for ServiceGenerator {
-    fn generate(&mut self, service: prost_build::Service, _buf: &mut String) {
+    fn generate(&mut self, service: ProstService, _buf: &mut String) {
+        let service = Service::new(service, self.builder.codec_path.clone());
         if self.builder.build_server {
             let server = CodeGenBuilder::new()
                 .emit_package(self.builder.emit_package)
@@ -234,6 +274,7 @@ pub struct Builder {
     pub(crate) include_file: Option<PathBuf>,
     pub(crate) emit_rerun_if_changed: bool,
     pub(crate) disable_comments: HashSet<String>,
+    pub(crate) codec_path: String,
 
     out_dir: Option<PathBuf>,
 }
@@ -408,6 +449,15 @@ impl Builder {
     /// explicitly.
     pub fn emit_rerun_if_changed(mut self, enable: bool) -> Self {
         self.emit_rerun_if_changed = enable;
+        self
+    }
+
+    /// Set the module path to the `tonic::codec::Codec` implementation to use
+    /// to serialize/deserialize the protobuf messages.
+    ///
+    /// This defaults to `tonic::codec::ProstCodec`
+    pub fn codec_path(mut self, codec_path: impl AsRef<str>) -> Self {
+        self.codec_path = codec_path.as_ref().to_string();
         self
     }
 

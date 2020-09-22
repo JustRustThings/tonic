@@ -99,6 +99,8 @@ pub trait Service {
     /// Method type.
     type Method: Method;
 
+    /// Configured codec path.
+    fn codec_path(&self) -> &str;
     /// Name of service.
     fn name(&self) -> &str;
     /// Package name of service.

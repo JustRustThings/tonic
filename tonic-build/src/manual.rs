@@ -62,9 +62,17 @@ pub struct ServiceBuilder {
     comments: Vec<String>,
     /// The service methods.
     methods: Vec<Method>,
+    /// The path to the codec to use for this service
+    codec_path: Option<String>,
 }
 
 impl ServiceBuilder {
+    /// Set the codec path for this service.
+    pub fn codec_path(mut self, cp: impl AsRef<str>) -> Self {
+        self.codec_path = Some(cp.as_ref().to_owned());
+        self
+    }
+
     /// Set the name for this Service.
     ///
     /// This value will be used both as the base for the generated rust types and service trait as
@@ -98,13 +106,14 @@ impl ServiceBuilder {
 
     /// Build a Service.
     ///
-    /// Panics if `name` or `package` weren't set.
+    /// Panics if `codec_path`, `name` or `package` weren't set.
     pub fn build(self) -> Service {
         Service {
             name: self.name.unwrap(),
             comments: self.comments,
             package: self.package.unwrap(),
             methods: self.methods,
+            codec_path: self.codec_path.unwrap(),
         }
     }
 }
@@ -120,6 +129,8 @@ pub struct Service {
     comments: Vec<String>,
     /// The service methods.
     methods: Vec<Method>,
+    /// The path to the codec to use for this service
+    codec_path: String,
 }
 
 impl Service {
@@ -133,6 +144,10 @@ impl crate::Service for Service {
     type Comment = String;
 
     type Method = Method;
+
+    fn codec_path(&self) -> &str {
+        &self.codec_path
+    }
 
     fn name(&self) -> &str {
         &self.name

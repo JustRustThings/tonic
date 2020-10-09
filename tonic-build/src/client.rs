@@ -176,6 +176,11 @@ fn generate_unary<T: Method>(
     let codec_name = syn::parse_str::<syn::Path>(method.codec_path()).unwrap();
     let ident = format_ident!("{}", method.name());
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(request.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -185,9 +190,10 @@ fn generate_unary<T: Method>(
            self.inner.ready().await.map_err(|e| {
                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
            })?;
-           let codec = #codec_name::default();
+           let request = request.into_request();
+           let codec = #codec_constructor;
            let path = http::uri::PathAndQuery::from_static(#path);
-           self.inner.unary(request.into_request(), path, codec).await
+           self.inner.unary(request, path, codec).await
         }
     }
 }
@@ -202,6 +208,11 @@ fn generate_server_streaming<T: Method>(
     let ident = format_ident!("{}", method.name());
 
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(request.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -211,9 +222,10 @@ fn generate_server_streaming<T: Method>(
             self.inner.ready().await.map_err(|e| {
                         tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
+            let request = request.into_request();
+            let codec = #codec_constructor;
             let path = http::uri::PathAndQuery::from_static(#path);
-            self.inner.server_streaming(request.into_request(), path, codec).await
+            self.inner.server_streaming(request, path, codec).await
         }
     }
 }
@@ -228,6 +240,11 @@ fn generate_client_streaming<T: Method>(
     let ident = format_ident!("{}", method.name());
 
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(request.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -237,9 +254,10 @@ fn generate_client_streaming<T: Method>(
             self.inner.ready().await.map_err(|e| {
                         tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
+            let request = request.into_streaming_request();
+            let codec = #codec_constructor;
             let path = http::uri::PathAndQuery::from_static(#path);
-            self.inner.client_streaming(request.into_streaming_request(), path, codec).await
+            self.inner.client_streaming(request, path, codec).await
         }
     }
 }
@@ -254,6 +272,11 @@ fn generate_streaming<T: Method>(
     let ident = format_ident!("{}", method.name());
 
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(request.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -263,9 +286,10 @@ fn generate_streaming<T: Method>(
             self.inner.ready().await.map_err(|e| {
                         tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
+            let request = request.into_streaming_request();
+            let codec = #codec_constructor;
             let path = http::uri::PathAndQuery::from_static(#path);
-            self.inner.streaming(request.into_streaming_request(), path, codec).await
+            self.inner.streaming(request, path, codec).await
         }
     }
 }

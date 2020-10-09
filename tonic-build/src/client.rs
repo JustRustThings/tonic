@@ -231,6 +231,11 @@ fn generate_unary<T: Service>(
     let service_name = format_service_name(service, emit_package);
     let path = format_method_path(service, method, emit_package);
     let method_name = method.identifier();
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(req.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -240,9 +245,9 @@ fn generate_unary<T: Service>(
            self.inner.ready().await.map_err(|e| {
                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
            })?;
-           let codec = #codec_name::default();
-           let path = http::uri::PathAndQuery::from_static(#path);
            let mut req = request.into_request();
+           let codec = #codec_constructor;
+           let path = http::uri::PathAndQuery::from_static(#path);
            req.extensions_mut().insert(GrpcMethod::new(#service_name, #method_name));
            self.inner.unary(req, path, codec).await
         }
@@ -262,6 +267,11 @@ fn generate_server_streaming<T: Service>(
     let service_name = format_service_name(service, emit_package);
     let path = format_method_path(service, method, emit_package);
     let method_name = method.identifier();
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(req.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -271,9 +281,9 @@ fn generate_server_streaming<T: Service>(
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
-            let path = http::uri::PathAndQuery::from_static(#path);
             let mut req = request.into_request();
+            let codec = #codec_constructor;
+            let path = http::uri::PathAndQuery::from_static(#path);
             req.extensions_mut().insert(GrpcMethod::new(#service_name, #method_name));
             self.inner.server_streaming(req, path, codec).await
         }
@@ -293,6 +303,11 @@ fn generate_client_streaming<T: Service>(
     let service_name = format_service_name(service, emit_package);
     let path = format_method_path(service, method, emit_package);
     let method_name = method.identifier();
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(req.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -302,9 +317,9 @@ fn generate_client_streaming<T: Service>(
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
-            let path = http::uri::PathAndQuery::from_static(#path);
             let mut req = request.into_streaming_request();
+            let codec = #codec_constructor;
+            let path = http::uri::PathAndQuery::from_static(#path);
             req.extensions_mut().insert(GrpcMethod::new(#service_name, #method_name));
             self.inner.client_streaming(req, path, codec).await
         }
@@ -324,6 +339,11 @@ fn generate_streaming<T: Service>(
     let service_name = format_service_name(service, emit_package);
     let path = format_method_path(service, method, emit_package);
     let method_name = method.identifier();
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(req.metadata().get("agent-id"))? }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         pub async fn #ident(
@@ -333,9 +353,9 @@ fn generate_streaming<T: Service>(
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = #codec_name::default();
-            let path = http::uri::PathAndQuery::from_static(#path);
             let mut req = request.into_streaming_request();
+            let codec = #codec_constructor;
+            let path = http::uri::PathAndQuery::from_static(#path);
             req.extensions_mut().insert(GrpcMethod::new(#service_name,#method_name));
             self.inner.streaming(req, path, codec).await
         }

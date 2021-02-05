@@ -78,6 +78,8 @@ pub(crate) fn generate_internal<T: Service>(
             )]
             use tonic::codegen::*;
             use tonic::codegen::http::Uri;
+            #[allow(unused_imports)]
+            use std::convert::TryFrom;
 
             #service_doc
             #(#struct_attributes)*

@@ -44,6 +44,8 @@ pub fn generate<T: Service>(
                 clippy::let_unit_value,
             )]
             use tonic::codegen::*;
+            #[allow(unused_imports)]
+            use std::convert::TryFrom;
 
             #service_doc
             #(#struct_attributes)*

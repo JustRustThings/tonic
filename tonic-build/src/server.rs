@@ -79,6 +79,8 @@ pub fn generate<T: Service>(
                 clippy::let_unit_value,
             )]
             use tonic::codegen::*;
+            #[allow(unused_imports)]
+            use std::convert::TryFrom;
 
             #generated_trait
 
@@ -372,6 +374,17 @@ fn generate_unary<T: Method>(
 
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
 
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
+            log::error!("Invalid agent ID: {}", err);
+            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
+            #codec_name::default()
+            })
+        }
+    } else {
+        quote! { #codec_name::default() }
+    };
+
     quote! {
         #[allow(non_camel_case_types)]
         struct #service_ident<T: #server_trait >(pub Arc<T>);
@@ -395,7 +408,8 @@ fn generate_unary<T: Method>(
         let fut = async move {
             let inner = inner.0;
             let method = #service_ident(inner);
-            let codec = #codec_name::default();
+            let agent_id = req.headers().get("agent-id").and_then(|h| h.to_str().ok());
+            let codec = #codec_constructor;
 
             let mut grpc = tonic::server::Grpc::new(codec)
                 .apply_compression_config(accept_compression_encodings, send_compression_encodings);
@@ -423,6 +437,17 @@ fn generate_server_streaming<T: Method>(
 
     let response_stream = quote::format_ident!("{}Stream", method.identifier());
 
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
+            log::error!("Invalid agent ID: {}", err);
+            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
+            #codec_name::default()
+            })
+        }
+    } else {
+        quote! { #codec_name::default() }
+    };
+
     quote! {
         #[allow(non_camel_case_types)]
         struct #service_ident<T: #server_trait >(pub Arc<T>);
@@ -447,7 +472,8 @@ fn generate_server_streaming<T: Method>(
         let fut = async move {
             let inner = inner.0;
             let method = #service_ident(inner);
-            let codec = #codec_name::default();
+            let agent_id = req.headers().get("agent-id").and_then(|h| h.to_str().ok());
+            let codec = #codec_constructor;
 
             let mut grpc = tonic::server::Grpc::new(codec)
                 .apply_compression_config(accept_compression_encodings, send_compression_encodings);
@@ -471,6 +497,16 @@ fn generate_client_streaming<T: Method>(
 
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
     let codec_name = syn::parse_str::<syn::Path>(method.codec_path()).unwrap();
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
+            log::error!("Invalid agent ID: {}", err);
+            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
+            #codec_name::default()
+            })
+        }
+    } else {
+        quote! { #codec_name::default() }
+    };
 
     quote! {
         #[allow(non_camel_case_types)]
@@ -497,7 +533,8 @@ fn generate_client_streaming<T: Method>(
         let fut = async move {
             let inner = inner.0;
             let method = #service_ident(inner);
-            let codec = #codec_name::default();
+            let agent_id = req.headers().get("agent-id").and_then(|h| h.to_str().ok());
+            let codec = #codec_constructor;
 
             let mut grpc = tonic::server::Grpc::new(codec)
                 .apply_compression_config(accept_compression_encodings, send_compression_encodings);
@@ -525,6 +562,17 @@ fn generate_streaming<T: Method>(
 
     let response_stream = quote::format_ident!("{}Stream", method.identifier());
 
+    let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
+        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
+            log::error!("Invalid agent ID: {}", err);
+            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
+            #codec_name::default()
+            })
+        }
+    } else {
+        quote! { #codec_name::default() }
+    };
+
     quote! {
         #[allow(non_camel_case_types)]
         struct #service_ident<T: #server_trait>(pub Arc<T>);
@@ -550,7 +598,8 @@ fn generate_streaming<T: Method>(
         let fut = async move {
             let inner = inner.0;
             let method = #service_ident(inner);
-            let codec = #codec_name::default();
+            let agent_id = req.headers().get("agent-id").and_then(|h| h.to_str().ok());
+            let codec = #codec_constructor;
 
             let mut grpc = tonic::server::Grpc::new(codec)
                 .apply_compression_config(accept_compression_encodings, send_compression_encodings);

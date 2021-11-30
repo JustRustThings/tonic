@@ -353,11 +353,14 @@ fn generate_unary<T: Method>(
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
 
     let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
-        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
-            log::error!("Invalid agent ID: {}", err);
-            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
-            #codec_name::default()
-            })
+        quote! {
+            match #codec_name::try_from(agent_id) {
+                Ok(codec) => codec,
+                Err(err) => {
+                    log::error!("Invalid agent ID: {}", err);
+                    return Ok(tonic::Status::unauthenticated("Invalid agent-id").to_http())
+                }
+            }
         }
     } else {
         quote! { #codec_name::default() }
@@ -416,11 +419,14 @@ fn generate_server_streaming<T: Method>(
     let response_stream = quote::format_ident!("{}Stream", method.identifier());
 
     let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
-        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
-            log::error!("Invalid agent ID: {}", err);
-            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
-            #codec_name::default()
-            })
+        quote! {
+            match #codec_name::try_from(agent_id) {
+                Ok(codec) => codec,
+                Err(err) => {
+                    log::error!("Invalid agent ID: {}", err);
+                    return Ok(tonic::Status::unauthenticated("Invalid agent-id").to_http())
+                }
+            }
         }
     } else {
         quote! { #codec_name::default() }
@@ -476,11 +482,14 @@ fn generate_client_streaming<T: Method>(
     let (request, response) = method.request_response_name(proto_path, compile_well_known_types);
     let codec_name = syn::parse_str::<syn::Path>(method.codec_path()).unwrap();
     let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
-        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
-            log::error!("Invalid agent ID: {}", err);
-            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
-            #codec_name::default()
-            })
+        quote! {
+            match #codec_name::try_from(agent_id) {
+                Ok(codec) => codec,
+                Err(err) => {
+                    log::error!("Invalid agent ID: {}", err);
+                    return Ok(tonic::Status::unauthenticated("Invalid agent-id").to_http())
+                }
+            }
         }
     } else {
         quote! { #codec_name::default() }
@@ -541,11 +550,14 @@ fn generate_streaming<T: Method>(
     let response_stream = quote::format_ident!("{}Stream", method.identifier());
 
     let codec_constructor = if method.codec_path().ends_with("ProstAesCodec") {
-        quote! { #codec_name::try_from(agent_id).unwrap_or_else(|err| {
-            log::error!("Invalid agent ID: {}", err);
-            // TODO: return a 502 error (or a 200 error with grpc-status: INVALID_ARGUMENT) instead
-            #codec_name::default()
-            })
+        quote! {
+            match #codec_name::try_from(agent_id) {
+                Ok(codec) => codec,
+                Err(err) => {
+                    log::error!("Invalid agent ID: {}", err);
+                    return Ok(tonic::Status::unauthenticated("Invalid agent-id").to_http())
+                }
+            }
         }
     } else {
         quote! { #codec_name::default() }

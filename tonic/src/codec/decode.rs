@@ -239,7 +239,23 @@ impl<T> Streaming<T> {
                 }
             };
             let len = self.buf.get_u32() as usize;
-            self.buf.reserve(len);
+
+            // limit message to 100 Mo
+            if len > 1024 * 1024 * 100 {
+                return Err(Status::invalid_argument(format!(
+                    "Body exceeds allowed length ({})",
+                    len
+                )));
+            }
+            // use fallible allocation
+            // needs patch in bytes for adding `try_reserve`
+            if let Err(err) = self.buf.try_reserve(len) {
+                return Err(Status::internal(format!(
+                    "Could not allocate buffer (needed size: {}): {}",
+                    len,                    
+                    err
+                )));
+            }
 
             self.state = State::ReadBody {
                 compression: is_compressed,

@@ -190,7 +190,12 @@ impl StreamingInner {
                 ));
             }
 
-            self.buf.reserve(len);
+            if let Err(err) = self.buf.try_reserve(len) {
+                return Err(Status::internal(format!(
+                    "Could not allocate buffer (needed size: {}): {}",
+                    len, err
+                )));
+            }
 
             self.state = State::ReadBody {
                 compression: compression_encoding,

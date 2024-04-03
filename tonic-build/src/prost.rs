@@ -42,6 +42,7 @@ pub fn configure() -> Builder {
         use_arc_self: false,
         generate_default_stubs: false,
         compile_settings: CompileSettings::default(),
+        service_only: false,
     }
 }
 
@@ -303,6 +304,7 @@ pub struct Builder {
     pub(crate) use_arc_self: bool,
     pub(crate) generate_default_stubs: bool,
     pub(crate) compile_settings: CompileSettings,
+    pub(crate) service_only: bool,
 
     out_dir: Option<PathBuf>,
 }
@@ -585,6 +587,12 @@ impl Builder {
         self
     }
 
+    /// Only generate the service parts
+    pub fn service_only(mut self, service_only: bool) -> Self {
+        self.service_only = service_only;
+        self
+    }
+
     /// Compile the .proto files and execute code generation.
     pub fn compile(
         self,
@@ -657,6 +665,10 @@ impl Builder {
                 // could specify only those files instead.
                 println!("cargo:rerun-if-changed={}", path.as_ref().display())
             }
+        }
+
+        if self.service_only {
+            config.service_only(true);
         }
 
         config.service_generator(self.service_generator());

@@ -43,6 +43,7 @@ pub fn configure() -> Builder {
         generate_default_stubs: false,
         compile_settings: CompileSettings::default(),
         skip_debug: HashSet::default(),
+        service_only: false,
     }
 }
 
@@ -312,6 +313,7 @@ pub struct Builder {
     pub(crate) generate_default_stubs: bool,
     pub(crate) compile_settings: CompileSettings,
     pub(crate) skip_debug: HashSet<String>,
+    pub(crate) service_only: bool,
 
     out_dir: Option<PathBuf>,
 }
@@ -600,6 +602,12 @@ impl Builder {
         self
     }
 
+    /// Only generate the service parts
+    pub fn service_only(mut self, service_only: bool) -> Self {
+        self.service_only = service_only;
+        self
+    }
+
     /// Compile the .proto files and execute code generation.
     pub fn compile_protos(
         self,
@@ -695,6 +703,10 @@ impl Builder {
 
         for arg in self.protoc_args.iter() {
             config.protoc_arg(arg);
+        }
+
+        if self.service_only {
+            config.service_only(true);
         }
 
         config.service_generator(self.service_generator());

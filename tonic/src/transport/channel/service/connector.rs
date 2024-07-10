@@ -65,7 +65,7 @@ where
                         let io = tls.connect(TokioIo::new(io)).await?;
                         Ok(io)
                     } else {
-                        Err(HttpsUriWithoutTlsSupport(()).into())
+                        Ok(BoxedIo::new(io))
                     };
                 }
 
@@ -76,19 +76,3 @@ where
         })
     }
 }
-
-/// Error returned when trying to connect to an HTTPS endpoint without TLS enabled.
-#[cfg(feature = "_tls-any")]
-#[derive(Debug)]
-pub(crate) struct HttpsUriWithoutTlsSupport(());
-
-#[cfg(feature = "_tls-any")]
-impl fmt::Display for HttpsUriWithoutTlsSupport {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Connecting to HTTPS without TLS enabled")
-    }
-}
-
-// std::error::Error only requires a type to impl Debug and Display
-#[cfg(feature = "_tls-any")]
-impl std::error::Error for HttpsUriWithoutTlsSupport {}

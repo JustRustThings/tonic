@@ -84,6 +84,7 @@ pub fn configure() -> Builder {
         generate_default_stubs: false,
         codec_path: "tonic_prost::ProstCodec".to_string(),
         skip_debug: HashSet::default(),
+        service_only: false,
     }
 }
 
@@ -408,6 +409,7 @@ pub struct Builder {
     generate_default_stubs: bool,
     codec_path: String,
     skip_debug: HashSet<String>,
+    service_only: bool,
 }
 
 impl Builder {
@@ -688,6 +690,12 @@ impl Builder {
         self
     }
 
+    /// Only generate the service parts
+    pub fn service_only(mut self, service_only: bool) -> Self {
+        self.service_only = service_only;
+        self
+    }
+
     /// Compile the .proto files and execute code generation.
     pub fn compile_protos<P>(self, protos: &[P], includes: &[P]) -> io::Result<()>
     where
@@ -877,6 +885,10 @@ impl Builder {
 
         if self.skip_protoc_run {
             config.skip_protoc_run();
+        }
+
+        if self.service_only {
+            config.service_only(true);
         }
 
         if self.build_client || self.build_server {

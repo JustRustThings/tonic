@@ -785,6 +785,10 @@ impl Builder {
             config.skip_protoc_run();
         }
 
+        if self.service_only {
+            config.service_only(true);
+        }
+
         if self.build_client || self.build_server {
             let service_generator = ServiceGenerator::new(
                 self.build_client,
